@@ -230,3 +230,5 @@ data/indexes/
 models/
 logs/
 
+# Local ingestion state, history and temporary files
+data/ingestion/

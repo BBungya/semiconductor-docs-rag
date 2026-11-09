@@ -6,7 +6,7 @@
 <p>공개 기술 자료의 본문·표·페이지를 연결하고, 검색과 답변의 정확성을 실험으로 검증합니다.</p>
 
 <p>
-  <img src="https://img.shields.io/badge/Status-Planning-5319e7" alt="개발 상태: 기획 및 설계">
+  <img src="https://img.shields.io/badge/Status-Ingestion_Ready-0e8a16" alt="개발 상태: 문서 수집기 구현">
   <img src="https://img.shields.io/badge/Domain-Semiconductor-1d76db" alt="분야: 반도체">
   <img src="https://img.shields.io/badge/Approach-RAG-0e8a16" alt="목표 접근 방식: RAG">
 </p>
@@ -20,6 +20,18 @@
 </p>
 
 </div>
+
+## ✅ 구현 상태
+
+문서 수집기(#3)를 구현했습니다. 출처 목록 검증, 로컬 예제 등록, PDF 다운로드·기본 검증,
+중복 방지·내용 버전 관리, 실패 항목 재실행을 지원합니다.
+본문·표 추출과 RAG 검색·답변은 후속 개발 단계입니다.
+
+- 환경: Python 3.12 · uv · HTTPX · pypdf · pytest · Ruff
+- [문서 수집 사용 안내](docs/ingestion.md)
+- [수집기 검증 기록](reports/ingestion-verification.md)
+
+
 
 <a id="overview"></a>
 
@@ -63,7 +75,7 @@
 | 구분 | 준비 사항 |
 | --- | --- |
 | 지금 저장소를 확인하려면 | Git, 터미널, 텍스트 편집기 |
-| 개발 환경 구성 시 | Python 버전·의존성은 [#1](https://github.com/BBungya/semiconductor-docs-rag/issues/1)에서 확정 |
+| 개발 환경 | Python 3.12, uv (의존성은 pyproject.toml·uv.lock으로 관리) |
 | 모델·서비스 구현 시 | 선택한 모델 실행 환경 또는 API 키, DB·Docker 요구사항은 구현 후 안내 |
 
 ### 1. 저장소 복제
@@ -79,13 +91,44 @@ cd semiconductor-docs-rag
 
 ### 3. 설치·환경 설정·실행
 
-실행 코드와 의존성 파일이 추가되면 검증한 설치 명령, 환경변수, 실행 방법을 이 절에 함께 업데이트합니다. 현재 실행할 서버·CLI나 배포된 서비스는 없습니다. 실제 API 키는 커밋하지 않고, 환경 설정 구현 시 변수명만 담은 예제 파일을 제공합니다.
+프로젝트 최상위에서 실행합니다. 현재 문서 수집기는 API 키 없이 동작합니다.
+
+```powershell
+uv sync --locked
+
+# 계획만 확인
+uv run python -X utf8 -m semiconductor_rag.ingestion --dry-run
+
+# 선정된 문서 실제 등록·수집
+uv run python -X utf8 -m semiconductor_rag.ingestion
+
+# 실패한 문서만 재처리
+uv run python -X utf8 -m semiconductor_rag.ingestion --retry-failed
+```
+
+현재 목록은 직접 작성한 예제 5개를 등록하고, 보류된 외부 후보 7개는 건너뜁니다.
+재실행하면 같은 내용을 중복 등록하지 않습니다. 외부 자료의 선정·이용 조건은 유지합니다.
+옵션·결과 저장 위치·복구 방법은 [수집 안내](docs/ingestion.md)를 참고하세요.
+
+```powershell
+uv run pytest tests/ingestion
+uv run ruff check src/semiconductor_rag/ingestion tests/ingestion
+uv run ruff format --check src/semiconductor_rag/ingestion tests/ingestion
+```
 
 <details>
 <summary>📂 현재 저장소 구성</summary>
 
 ```text
 semiconductor-docs-rag/
+├── src/semiconductor_rag/ingestion/  # 수집·검증·저장·CLI
+├── tests/ingestion/                # 네트워크 없는 자동 테스트
+├── data/manifests/sources.csv      # 출처와 선정 상태
+├── data/examples/                  # 직접 작성한 예제
+├── docs/ingestion.md               # 수집 사용 안내
+├── reports/ingestion-verification.md
+├── pyproject.toml
+├── uv.lock
 ├── .gitignore
 └── README.md
 ```
@@ -200,6 +243,7 @@ semiconductor-docs-rag/
 
 | 날짜 | 내용 |
 | --- | --- |
+| 2026-11-09 | 문서 수집기 구현: 로컬 등록·PDF 다운로드·검증·중복/버전 관리·재실행·자동 테스트 |
 | 2026-10-23 | 개발 로드맵 24개 이슈 구성, 분야별 라벨 적용, 프로젝트 소개·시작 방법·평가 계획·지원 안내 작성 |
 
 변경 내역이 길어지면 별도 변경 로그로 분리합니다. 세부 수정은 [커밋 이력](https://github.com/BBungya/semiconductor-docs-rag/commits/main/)에서 확인할 수 있습니다.
