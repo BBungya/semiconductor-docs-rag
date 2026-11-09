@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "반도체 공개 기술 문서 기반 한국어 RAG 프로젝트"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "httpx>=0.28.1",
+    "pypdf>=7.0.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -15,6 +18,7 @@ packages = ["src/semiconductor_rag"]
 
 [dependency-groups]
 dev = [
+    "pytest>=9.2.0",
     "ruff",
 ]
 
