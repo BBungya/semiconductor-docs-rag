@@ -6,7 +6,7 @@
 <p>공개 기술 자료의 본문·표·페이지를 연결하고, 검색과 답변의 정확성을 실험으로 검증합니다.</p>
 
 <p>
-  <img src="https://img.shields.io/badge/Status-Ingestion_Ready-0e8a16" alt="개발 상태: 문서 수집기 구현">
+  <img src="https://img.shields.io/badge/Status-Parsing_Ready-0e8a16" alt="개발 상태: 문서 수집 및 파싱 구현">
   <img src="https://img.shields.io/badge/Domain-Semiconductor-1d76db" alt="분야: 반도체">
   <img src="https://img.shields.io/badge/Approach-RAG-0e8a16" alt="목표 접근 방식: RAG">
 </p>
@@ -25,11 +25,13 @@
 
 문서 수집기(#3)를 구현했습니다. 출처 목록 검증, 로컬 예제 등록, PDF 다운로드·기본 검증,
 중복 방지·내용 버전 관리, 실패 항목 재실행을 지원합니다.
-본문·표 추출과 RAG 검색·답변은 후속 개발 단계입니다.
+문서 파싱(#4)은 등록 원본에서 Markdown 본문·표, PDF 페이지별 본문·격자 표를 추출하고 원문 위치와 함께 저장합니다. 다음 단계는 청킹(#5)입니다.
 
 - 환경: Python 3.12 · uv · HTTPX · pypdf · pytest · Ruff
 - [문서 수집 사용 안내](docs/ingestion.md)
 - [수집기 검증 기록](reports/ingestion-verification.md)
+- [문서 파싱 사용 안내](docs/parsing.md)
+- [파싱 검증 기록](reports/parsing-verification.md)
 
 
 
@@ -109,6 +111,12 @@ uv run python -X utf8 -m semiconductor_rag.ingestion --retry-failed
 현재 목록은 직접 작성한 예제 5개를 등록하고, 보류된 외부 후보 7개는 건너뜁니다.
 재실행하면 같은 내용을 중복 등록하지 않습니다. 외부 자료의 선정·이용 조건은 유지합니다.
 옵션·결과 저장 위치·복구 방법은 [수집 안내](docs/ingestion.md)를 참고하세요.
+
+문서 수집 후 아래 명령을 실행하면 제목·본문·표와 원문 위치를 로컬 결과 파일에 저장합니다.
+
+```powershell
+uv run --locked python -X utf8 -m semiconductor_rag.parsing
+```
 
 ```powershell
 uv run pytest tests/ingestion
@@ -243,6 +251,7 @@ semiconductor-docs-rag/
 
 | 날짜 | 내용 |
 | --- | --- |
+| 2026-11-14 | PDF·Markdown 파싱, 출처 위치 기록, 추출 결과 저장과 원문 대조 |
 | 2026-11-09 | 문서 수집기 구현: 로컬 등록·PDF 다운로드·검증·중복/버전 관리·재실행·자동 테스트 |
 | 2026-10-23 | 개발 로드맵 24개 이슈 구성, 분야별 라벨 적용, 프로젝트 소개·시작 방법·평가 계획·지원 안내 작성 |
 
