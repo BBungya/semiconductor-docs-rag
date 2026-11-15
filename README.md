@@ -6,7 +6,7 @@
 <p>공개 기술 자료의 본문·표·페이지를 연결하고, 검색과 답변의 정확성을 실험으로 검증합니다.</p>
 
 <p>
-  <img src="https://img.shields.io/badge/Status-Parsing_Ready-0e8a16" alt="개발 상태: 문서 수집 및 파싱 구현">
+  <img src="https://img.shields.io/badge/Status-Chunking_Ready-0e8a16" alt="개발 상태: 문서 수집, 파싱 및 청킹 구현">
   <img src="https://img.shields.io/badge/Domain-Semiconductor-1d76db" alt="분야: 반도체">
   <img src="https://img.shields.io/badge/Approach-RAG-0e8a16" alt="목표 접근 방식: RAG">
 </p>
@@ -25,13 +25,16 @@
 
 문서 수집기(#3)를 구현했습니다. 출처 목록 검증, 로컬 예제 등록, PDF 다운로드·기본 검증,
 중복 방지·내용 버전 관리, 실패 항목 재실행을 지원합니다.
-문서 파싱(#4)은 등록 원본에서 Markdown 본문·표, PDF 페이지별 본문·격자 표를 추출하고 원문 위치와 함께 저장합니다. 다음 단계는 청킹(#5)입니다.
+문서 파싱(#4)은 등록 원본에서 Markdown 본문·표, PDF 페이지별 본문·격자 표를 추출하고 원문 위치와 함께 저장합니다.
+청킹(#5)은 추출한 본문과 표를 검색하기 좋은 크기로 나누고, 각 조각에 문서 버전과 원문 위치를 붙입니다.
 
 - 환경: Python 3.12 · uv · HTTPX · pypdf · pytest · Ruff
 - [문서 수집 사용 안내](docs/ingestion.md)
 - [수집기 검증 기록](reports/ingestion-verification.md)
 - [문서 파싱 사용 안내](docs/parsing.md)
 - [파싱 검증 기록](reports/parsing-verification.md)
+- [청킹 사용 안내](docs/chunking.md)
+- [청킹 검증 기록](reports/chunking-verification.md)
 
 
 
@@ -116,6 +119,12 @@ uv run python -X utf8 -m semiconductor_rag.ingestion --retry-failed
 
 ```powershell
 uv run --locked python -X utf8 -m semiconductor_rag.parsing
+```
+
+파싱을 마친 뒤 본문과 표를 검색용 청크로 나눕니다.
+
+```powershell
+uv run --locked python -X utf8 -m semiconductor_rag.chunking
 ```
 
 ```powershell
@@ -251,6 +260,7 @@ semiconductor-docs-rag/
 
 | 날짜 | 내용 |
 | --- | --- |
+| 2026-11-15 | 본문·표 청킹, 청크 ID와 출처 저장, 예제 원문 대조 |
 | 2026-11-14 | PDF·Markdown 파싱, 출처 위치 기록, 추출 결과 저장과 원문 대조 |
 | 2026-11-09 | 문서 수집기 구현: 로컬 등록·PDF 다운로드·검증·중복/버전 관리·재실행·자동 테스트 |
 | 2026-10-23 | 개발 로드맵 24개 이슈 구성, 분야별 라벨 적용, 프로젝트 소개·시작 방법·평가 계획·지원 안내 작성 |
