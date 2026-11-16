@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Evaluation question, schema version 1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "question_id": {
+      "type": "string",
+      "pattern": "^q[0-9]+$"
+    },
+    "question": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "question_language": {
+      "enum": [
+        "ko",
+        "en"
+      ]
+    },
+    "types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "concept",
+          "numeric",
+          "condition",
+          "table",
+          "product_code",
+          "multi_document",
+          "version",
+          "cross_language",
+          "unanswerable",
+          "false_premise"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "answerable": {
+      "type": "boolean"
+    },
+    "expected_answer": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "evidence_sets": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/evidence"
+        },
+        "uniqueItems": true,
+        "minItems": 1
+      },
+      "uniqueItems": true
+    },
+    "unanswerable_reason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reference_evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      },
+      "uniqueItems": true
+    },
+    "review": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "pending",
+            "verified",
+            "needs_revision"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "status",
+        "note"
+      ],
+      "additionalProperties": false
+    },
+    "split": {
+      "enum": [
+        "dev",
+        "validation",
+        "test",
+        null
+      ]
+    },
+    "group_id": {
+      "type": "string",
+      "pattern": "\\S"
+    }
+  },
+  "required": [
+    "schema_version",
+    "question_id",
+    "question",
+    "question_language",
+    "types",
+    "answerable",
+    "expected_answer",
+    "evidence_sets",
+    "unanswerable_reason",
+    "reference_evidence",
+    "review",
+    "split",
+    "group_id"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "answerable": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_sets": {
+            "minItems": 1
+          },
+          "unanswerable_reason": {
+            "type": "null"
+          },
+          "reference_evidence": {
+            "maxItems": 0
+          },
+          "types": {
+            "not": {
+              "contains": {
+                "const": "unanswerable"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "evidence_sets": {
+            "maxItems": 0
+          },
+          "unanswerable_reason": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "types": {
+            "contains": {
+              "const": "unanswerable"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "source_version": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "location": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "section_path": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "\\S"
+                  }
+                },
+                "line_start": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "line_end": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "section_path",
+                "line_start",
+                "line_end"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "page_number": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "page_number"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "excerpt": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "document_id",
+        "source_version",
+        "source_sha256",
+        "location",
+        "excerpt"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
