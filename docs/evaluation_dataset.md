@@ -1,0 +1,60 @@
+# RAG 평가 데이터
+
+평가 데이터는 같은 질문과 정답을 기준으로 여러 검색 설정을 비교할 때 사용합니다. 실제 서비스에서는 사용자가 질문을 자유롭게 입력합니다.
+
+## 저장소에 포함한 문항
+
+[개발용 데이터](../evals/dev.jsonl)에는 검토된 20개 문항이 있습니다. 자체 제작 Markdown 원문 5개를 바탕으로 답변 가능한 질문 17개와 자료로 답할 수 없는 질문 3개를 작성했습니다. 기존 공개 예제 12개에 새 문항 8개를 추가했습니다.
+
+[스키마](../evals/question.schema.json)는 JSON Schema Draft 2020-12를 사용합니다. UTF-8 JSONL의 한 줄에 문항 한 개를 저장합니다.
+
+| 필드 | 사용 방법 |
+| --- | --- |
+| `question_id`, `question`, `question_language`, `types` | 문항의 고유 ID, 질문, 언어, 질문 유형을 기록합니다. |
+| `answerable`, `expected_answer` | 문서로 필요한 정보를 확인할 수 있는지와 기대 답변을 기록합니다. 잘못된 전제를 원문으로 바로잡을 수 있다면 답변 가능한 질문입니다. |
+| `evidence_sets` | 한 묶음 안의 근거는 모두 필요합니다. 여러 묶음이 있으면 그중 한 묶음이 답을 뒷받침하면 됩니다. |
+| `unanswerable_reason`, `reference_evidence` | 답변 불가 이유와 정보를 확인한 범위를 기록합니다. 원문에 정보 부재가 명시되어 있으면 위치를 참고 근거로 남깁니다. |
+| `review`, `split`, `group_id` | 검토 상태와 메모, 문항 용도와 유사 문항 묶음을 기록합니다. |
+
+출처는 문서 ID, 버전, 원문 파일의 SHA-256, 위치, 확인할 내용을 담습니다. Markdown은 제목 경로와 원본 줄 범위를, PDF는 1부터 세는 실제 페이지와 확인할 문장이나 표 행을 기록합니다. 채점 기준은 청크 크기가 달라져도 연결할 수 있는 원문 위치입니다.
+
+## 정답과 근거 검토
+
+원문에서 제품 코드, 단위, 조건, 버전과 값을 확인합니다. 수치 비교나 단위 변환이 있으면 원래 값으로 다시 계산합니다. 예를 들어 사양서 1.1에서 `SYN-MEM-A`의 대역폭 값은 `28 GB/s`입니다. ‘최신 사양’을 묻는 문항은 표와 함께 1.1이 최신임을 밝힌 문장도 근거로 둡니다. LLM으로 만든 초안도 같은 방법으로 검토하고, 확인한 내용을 `review.note`에 기록합니다.
+
+`verified`는 원문을 대조한 상태입니다. 질문이나 원문이 바뀌면 기존 근거가 여전히 유효한지 다시 확인합니다. 파일의 해시는 줄바꿈에 따라서도 달라질 수 있으므로 자체 Markdown 원문의 줄바꿈을 LF로 유지합니다.
+
+## 분할과 공개 범위
+
+| 용도 | 현재 수 | 사용 방식 |
+| --- | ---: | --- |
+| 개발 `dev` | 20 | 기능 구현 중 검색·인용·답변 불가 처리 확인 |
+| 검증 `validation` | 6 | 새 가상 문서 2개를 사용해 청크 크기 등 설정 비교 |
+| 최종 테스트 `test` | 6 | 설정을 고정한 뒤 별도의 가상 문서 2개로 평가 |
+
+기존 공개 예제와 같은 사양 계열·표·조건·용어를 사용한 20개는 개발용으로 묶었습니다. 검증용과 테스트용은 서로 다른 문서와 조건을 사용합니다. 표현만 다른 질문, 같은 사실이나 표를 쓰는 질문, 같은 제품의 유사 버전을 비교하는 질문은 한 분할에 둡니다. 여러 문서를 쓰는 질문은 연결된 근거도 함께 검토합니다.
+
+공개 저장소에는 개발·검증 질문과 자체 제작 원문을 둡니다. 최종 테스트 질문·정답은 로컬 `evals/private/test.jsonl`에 두며 Git에서 제외합니다. 공개 저장소를 새로 복제하면 해당 파일은 권한 있는 작성자에게 별도로 받아야 합니다. 결과 보고서에는 사용한 데이터 버전과 검사 조건을 기록합니다. 외부 자료의 원문이나 발췌를 포함할 때는 자료별 이용 범위를 확인합니다. 문서 검색에는 승인된 원문만 넣고, 평가용 질문·정답 파일은 검색과 임베딩에서 제외합니다.
+
+## 검증·테스트용 원문 준비
+
+[검증 질문](../evals/validation.jsonl)은 [검증 원문 목록](../evals/validation_sources.csv)을 사용합니다. 최종 테스트는 [테스트 원문 목록](../evals/test_sources.csv)을 사용합니다. 각각 분리된 작업 폴더를 만들면 기본 개발용 문서 등록 상태와 섞이지 않습니다. 프로젝트 루트의 PowerShell에서 검증용 원문만 준비하는 예시입니다.
+
+```powershell
+$evaluationRoot = Join-Path $env:TEMP ('rag-validation-' + [guid]::NewGuid())
+New-Item -ItemType Directory -Path "$evaluationRoot/data/examples/evaluation" -Force
+Copy-Item data/examples/evaluation/validation "$evaluationRoot/data/examples/evaluation" -Recurse
+uv run --locked python -X utf8 -m semiconductor_rag.ingestion --manifest evals/validation_sources.csv --project-root $evaluationRoot
+uv run --locked python -X utf8 -m semiconductor_rag.parsing --project-root $evaluationRoot
+uv run --locked python -X utf8 -m semiconductor_rag.chunking --project-root $evaluationRoot
+```
+
+검증용 질문으로 설정을 선택한 뒤 결과를 기록합니다. 최종 평가에서는 별도의 새 작업 폴더와 `test` 원문 폴더, `evals/test_sources.csv`를 사용합니다. 준비된 청크를 평가 대상으로 쓰며, 검색과 답변의 품질 수치는 검색기와 답변 기능을 연결한 뒤 측정합니다. 문항 수가 적고 원문이 가상이라 초기 동작을 확인하는 범위입니다.
+
+## 검사
+
+```powershell
+uv run --locked pytest tests/evaluation
+```
+
+질문 ID·문구·묶음 중복, 검토 상태, 필수 정답 또는 답변 불가 이유, 원문 버전·해시·근거 범위를 점검합니다. 테스트 원문 목록은 항상 검사하며, 비공개 질문 파일이 있으면 그 문항도 함께 확인합니다.

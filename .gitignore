@@ -232,3 +232,4 @@ logs/
 
 # Local ingestion state, history and temporary files
 data/ingestion/
+/evals/private/
