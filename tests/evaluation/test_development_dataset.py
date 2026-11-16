@@ -18,24 +18,30 @@ def section_at(lines: list[str], line_number: int) -> list[str]:
     return [title for _, title in headings]
 
 
-def test_development_dataset_references_reviewed_current_sources():
-    rows = [
+def read_rows(name):
+    return [
         json.loads(line)
-        for line in (ROOT / "evals/dev.jsonl").read_text(encoding="utf-8").splitlines()
+        for line in (ROOT / "evals" / name).read_text(encoding="utf-8").splitlines()
     ]
-    assert rows
-    assert len({row["question_id"] for row in rows}) == len(rows)
-    assert len({" ".join(row["question"].casefold().split()) for row in rows}) == len(rows)
 
-    with (ROOT / "data/manifests/sources.csv").open(encoding="utf-8-sig", newline="") as file:
-        sources = {
+
+def read_sources(path):
+    with (ROOT / path).open(encoding="utf-8-sig", newline="") as file:
+        return {
             item["document_id"]: item
             for item in csv.DictReader(file)
             if item["selection_status"] == "selected_synthetic_fixture"
         }
+
+
+def verify_rows(rows, split, sources):
+    assert rows
+    assert len({row["question_id"] for row in rows}) == len(rows)
+    assert len({" ".join(row["question"].casefold().split()) for row in rows}) == len(rows)
+
     for row in rows:
         question_id = row["question_id"]
-        assert row["split"] == "dev", question_id
+        assert row["split"] == split, question_id
         assert row["review"]["status"] == "verified", question_id
         assert row["review"]["note"].strip(), question_id
         assert row["expected_answer"].strip(), question_id
@@ -59,3 +65,35 @@ def test_development_dataset_references_reviewed_current_sources():
             assert 1 <= start <= end <= len(lines), question_id
             assert section_at(lines, start) == location["section_path"], question_id
             assert section_at(lines, end) == location["section_path"], question_id
+
+
+def test_evaluation_datasets_have_reviewed_sources_and_do_not_overlap():
+    dev = read_sources("data/manifests/sources.csv")
+    validation = read_sources("evals/validation_sources.csv")
+    test = read_sources("evals/test_sources.csv")
+    assert validation and test
+    for first, second in ((dev, validation), (dev, test), (validation, test)):
+        assert first.keys().isdisjoint(second)
+        assert {row["sha256"] for row in first.values()}.isdisjoint(
+            row["sha256"] for row in second.values()
+        )
+
+    splits = [
+        ("dev", read_rows("dev.jsonl"), dev),
+        ("validation", read_rows("validation.jsonl"), validation),
+    ]
+    if (ROOT / "evals/private/test.jsonl").exists():
+        splits.append(("test", read_rows("private/test.jsonl"), test))
+
+    ids, wording, groups = set(), set(), set()
+    for split, rows, sources in splits:
+        verify_rows(rows, split, sources)
+        split_ids = {row["question_id"] for row in rows}
+        split_wording = {" ".join(row["question"].casefold().split()) for row in rows}
+        split_groups = {row["group_id"] for row in rows}
+        assert ids.isdisjoint(split_ids)
+        assert wording.isdisjoint(split_wording)
+        assert groups.isdisjoint(split_groups)
+        ids.update(split_ids)
+        wording.update(split_wording)
+        groups.update(split_groups)

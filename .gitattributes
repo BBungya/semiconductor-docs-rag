@@ -1,1 +1,2 @@
 /data/examples/*.md text eol=lf
+/data/examples/evaluation/**/*.md text eol=lf
